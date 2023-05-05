@@ -163,6 +163,6 @@ files:
     \    Files.deleteIfExists(Paths.get(CURRENT_DIR + testFolder));\n        }\n \
     \       catch (IOException ex) {\n\n\n        }\n    }\n\n}\n"
   learner_created: false
-feedback_link: https://hyperskill.org/projects/244/stages/1226/implement#comment
+feedback_link: https://hyperskill.org/learn/step/18932#comment
 status: Unchecked
 record: -1
