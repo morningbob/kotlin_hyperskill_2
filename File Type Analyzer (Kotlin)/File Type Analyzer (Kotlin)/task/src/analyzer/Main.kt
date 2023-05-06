@@ -1,5 +1,9 @@
 package analyzer
 
+//import kotlinx.coroutines.CoroutineScope
+//import kotlinx.coroutines.Dispatchers
+//import kotlinx.coroutines.async
+//import kotlinx.coroutines.launch
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -21,7 +25,7 @@ fun main(args: Array<String>) {
     println(searchKMP(text, pattern, type))
 
  */
-
+    /*
     val algorithm = args[0]
     val filename = args[1]
     val pattern = args[2]
@@ -29,11 +33,52 @@ fun main(args: Array<String>) {
 
     val file = File(filename)
     val text = file.readText()
-
     when (algorithm) {
         "--naive" -> println(searchNaive(text, pattern, type))
         "--KMP" -> println(searchKMP(text, pattern, type))
     }
+*/
+    val (path, pattern, type) = args
+    val files = File(path).listFiles()
+    var output = ""
+    val mainThread = Thread() {
+
+
+        for (file in files) {
+            //println("starting ${file.name} process")
+            val thread = Thread() {
+                val text = file.readText()
+                output += "${file.name}: ${searchKMP(text, pattern, type)}"
+                //println("waiting for ${file.name}")
+            }
+
+            thread.start()
+            thread.join()
+        }
+    }
+    mainThread.start()
+    mainThread.join()
+    println(output)
+    //println("main finished")
+
+
+/*
+    CoroutineScope(Dispatchers.Main).launch {
+        for (file in files) {
+            println("starting ${file.name} process")
+            val outputDeferred = CoroutineScope(Dispatchers.IO).async {
+                val text = file.readText()
+                "${file.name}: ${searchKMP(text, pattern, type)}\n"
+            }
+            output += outputDeferred.await()
+            println("waiting for ${file.name}")
+        }
+        //CoroutineScope(Dispatchers.Main).launch {
+            println("ending the program")
+            println(output)
+        //}
+    }
+*/
 
 }
 
@@ -52,8 +97,8 @@ private fun searchKMP(text: String, pattern: String,
     } else {
         output += "Unknown file type\n"
     }
-    val time = formatTime(start, end)
-    output += "It took ${time} seconds"
+    //val time = formatTime(start, end)
+    //output += "It took ${time} seconds"
 
     return output
 }

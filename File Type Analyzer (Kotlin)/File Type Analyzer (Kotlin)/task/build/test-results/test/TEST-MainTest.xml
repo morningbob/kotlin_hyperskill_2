@@ -1,23 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="MainTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2023-05-06T19:04:10" hostname="Jessies-iMac.local" time="0.104">
+<testsuite name="MainTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2023-05-06T21:24:18" hostname="Jessies-iMac.local" time="0.084">
   <properties/>
-  <testcase name="start" classname="MainTest" time="0.104"/>
+  <testcase name="start" classname="MainTest" time="0.084"/>
   <system-out><![CDATA[?[1;31m
 Start test 1?[0m
-PDF document
-It took 6.036E-6 seconds
+doc.pdf: PDF document
+text.txt: PDF document
+
 ?[1;31m
 Start test 2?[0m
-DOC document
-It took 0.013070659 seconds
+file.pem: PEM certificate
+file.pdf: PEM certificate
+
 ?[1;31m
 Start test 3?[0m
-Unknown file type
-It took 5.94E-6 seconds
+the_only_file.pem: PEM certificate
+
 ?[1;31m
 Start test 4?[0m
-Unknown file type
-It took 0.013154926 seconds
+doc9.txt: Unknown file type
+doc8.pdf: Unknown file type
+doc5.pdf: TXT document
+doc4.pdf: TXT document
+doc6.pdf: TXT document
+doc7.pdf: TXT document
+doc3.pdf: TXT document
+doc2.pdf: TXT document
+doc0.pdf: TXT document
+doc1.pdf: TXT document
+
 ]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>
