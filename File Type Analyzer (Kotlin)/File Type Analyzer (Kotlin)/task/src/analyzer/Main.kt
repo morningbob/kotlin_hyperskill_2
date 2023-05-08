@@ -1,14 +1,15 @@
 package analyzer
 
-//import kotlinx.coroutines.CoroutineScope
-//import kotlinx.coroutines.Dispatchers
-//import kotlinx.coroutines.async
-//import kotlinx.coroutines.launch
 import java.io.File
 import java.util.concurrent.TimeUnit
+import kotlin.math.pow
 
 fun main(args: Array<String>) {
 /*
+    val (pattern, text) = args
+    println(RabinKarp(pattern, text))
+
+
     val pattern = args[0]
     //println("pattern $pattern")
 
@@ -24,8 +25,8 @@ fun main(args: Array<String>) {
 
     println(searchKMP(text, pattern, type))
 
- */
-    /*
+
+
     val algorithm = args[0]
     val filename = args[1]
     val pattern = args[2]
@@ -38,17 +39,23 @@ fun main(args: Array<String>) {
         "--KMP" -> println(searchKMP(text, pattern, type))
     }
 */
-    val (path, pattern, type) = args
+
+    val (path, patternFile) = args
+    val patternList = File(patternFile).readLines()
+    val patterns = createPatternList(patternList)
+    val sortedPatterns = rankPatterns(patterns)
+
+    //val (path, pattern, type) = args
     val files = File(path).listFiles()
     var output = ""
+
     val mainThread = Thread() {
-
-
         for (file in files) {
             //println("starting ${file.name} process")
             val thread = Thread() {
                 val text = file.readText()
-                output += "${file.name}: ${searchKMP(text, pattern, type)}"
+                //output += "${file.name}: ${searchKMP(text, pattern)}"
+                output += search(text, sortedPatterns, file.name)
                 //println("waiting for ${file.name}")
             }
 
@@ -59,48 +66,160 @@ fun main(args: Array<String>) {
     mainThread.start()
     mainThread.join()
     println(output)
-    //println("main finished")
-
-
-/*
-    CoroutineScope(Dispatchers.Main).launch {
-        for (file in files) {
-            println("starting ${file.name} process")
-            val outputDeferred = CoroutineScope(Dispatchers.IO).async {
-                val text = file.readText()
-                "${file.name}: ${searchKMP(text, pattern, type)}\n"
-            }
-            output += outputDeferred.await()
-            println("waiting for ${file.name}")
-        }
-        //CoroutineScope(Dispatchers.Main).launch {
-            println("ending the program")
-            println(output)
-        //}
-    }
-*/
 
 }
 
-private fun searchKMP(text: String, pattern: String,
-                      type: String) : String {
+private fun createPatternList(patterns: List<String>) : List<Pattern> {
+    val listPattern = mutableListOf<Pattern>()
+    for (pattern in patterns) {
+        val (priority, patternFormat, name) = pattern.split(";")
+        //println("name $name, pattern $patternFormat, priority $priority")
+        val newPattern = Pattern(
+            pattern = patternFormat.substring(1, patternFormat.length - 1),
+            name = name.substring(1, name.length - 1),
+            priority = priority.toInt())
+        listPattern.add(newPattern)
+    }
+    return listPattern
+
+}
+
+private fun rankPatterns(patterns: List<Pattern>) : List<Pattern> {
+    return patterns.sortedByDescending { it.priority }
+}
+
+data class Pattern(val pattern: String, val name: String, val priority: Int)
+
+private fun search(text: String, patterns: List<Pattern>, filename: String
+                      ) : String {
     // build prefix function
     // compare
     var output = ""
-    val start = System.nanoTime()
-    val prefix = buildPrefixFunction(pattern)
-    val result = KMP(pattern, text, prefix)
-    val end = System.nanoTime()
-    if (result) {
-        //println("result is $result")
-        output += "$type\n"
-    } else {
-        output += "Unknown file type\n"
+    //val start = System.nanoTime()
+    //var found = false
+    for (pattern in patterns) {
+        //while (true) {
+            //val prefix = buildPrefixFunction(pattern.pattern)
+            //println("KMP pattern ${pattern.pattern}")
+            //val result = KMP(pattern.pattern, text, prefix)
+            //val end = System.nanoTime()
+        val result = RabinKarp(pattern.pattern, text)
+        if (result) {
+            return "$filename: ${pattern.name}\n"
+            //println("result is $result")
+            //output += "$type\n"
+        } else {
+            //output += "$filename not ${pattern.name} with pattern ${pattern.pattern}\n"
+            //output += "$filename: Unknown file type\n"
+        }
+        //}
+        //val time = formatTime(start, end)
+        //output += "It took ${time} seconds"
     }
-    //val time = formatTime(start, end)
-    //output += "It took ${time} seconds"
+    // so we didn't find it
+    output += "$filename: Unknown file type\n"
 
     return output
+}
+
+private fun RabinKarp(pattern: String, text: String) : Boolean {
+
+    val factor = 3
+    val modular = 11
+    var textToBeCut = text
+
+    //val letterMap = mutableMapOf<Char, Int>()
+    //var i = 1
+    //for (each in "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
+    //    letterMap.put(each, i)
+    //    i++
+    //}
+    //var different = false
+
+    val patternHash = computeHash(pattern, factor, modular)
+
+    // test if the text length > pattern length, if not, return false
+    if (text.length < pattern.length) {
+        return false
+    }
+    //var currentPosition = (text.length - pattern.length)
+    //var endIndex = 1
+    var previousSubstring = text.substring(
+        text.length - pattern.length, text.length)
+    println("first substring $previousSubstring")
+    var previousHash = computeHash(previousSubstring, factor, modular)
+    //println("first hash $previousHash")
+    textToBeCut = textToBeCut.dropLast(1)
+    println("text before while loop $textToBeCut")
+    //while (currentPosition >= 0 && (text.length - pattern.length - endIndex >= 0)) {
+    //    val substring = text.substring(
+    //        text.length - pattern.length - endIndex, text.length - endIndex)
+    while (true) {
+        //println("$substring's hash $previousHash")
+        if (patternHash == previousHash) {
+            // compare characters
+            for (i in 0..pattern.length - 1) {
+                if (pattern[i] != previousSubstring[i]) {
+                    //println("different when comparing actual char")
+                    //return false
+                    //different = true
+                    break
+                } else {
+                    if (i == pattern.length - 1) {
+                        return true
+                    }
+                }
+            }
+            //println("found a match")
+            //return true
+        }
+        // put the termination condition here because we have to run
+        // the above one more time
+        if ((textToBeCut.length - pattern.length < 0)) {
+            break
+        }
+        val newSubstring = text.substring(
+            textToBeCut.length - pattern.length, textToBeCut.length)
+        println("substring inside while loop $newSubstring")
+        //println("substring dealing with $substring")
+        //println("calculated hash ${computeHash(substring, factor, modular, letterMap)}")
+        previousHash = computeNewHashFromOldHash(previousHash, previousSubstring, newSubstring,
+            factor, modular)
+        previousSubstring = newSubstring
+        textToBeCut = textToBeCut.dropLast(1)
+        println("text before another while loop $textToBeCut")
+        //currentPosition -= pattern.length
+        //endIndex += pattern.length
+    }
+    //println("finished comparing all hashes, no match")
+    return false
+}
+
+
+private fun computeHash(substring: String, factor: Int, modular: Int) : Int {
+    var sum = 0.0
+    for (i in 0..substring.length - 1) {
+        //sum += letterMap[substring[i]]!! * factor.toDouble().pow(i)
+        sum += substring[i].code * factor.toDouble().pow(i)
+        //println("char ${substring[i]} sum $sum")
+
+    }
+    val hash = sum.toInt().mod(modular) //% modular
+    //println(hash)
+    return hash
+}
+
+private fun computeNewHashFromOldHash(oldHash: Int, oldSubstring: String,
+                                      newSubstring: String, factor: Int,
+                                      modular: Int) : Int {
+    val progress = (oldHash - (oldSubstring.last().code *
+            factor.toDouble().pow(oldSubstring.length - 1).toInt())) *
+            factor +
+            newSubstring.first().code
+    //println("old hash $oldHash - ${letterMap[oldSubstring.last()]!!} * " +
+    //        "${factor.toDouble().pow(oldSubstring.length - 1)} * $factor " +
+    //        "+ ${letterMap[newSubstring.first()]!!}")
+    return progress.mod(modular) //% modular
 }
 
 private fun formatTime(start: Long, end: Long) : String {
@@ -169,6 +288,7 @@ private fun KMP(pattern: String, text: String, prefixFunction: Array<Int>) : Boo
     }
     return false
 }
+/*
 private fun searchNaive(text: String,
                         pattern: String,
                           type: String) : String {
@@ -209,7 +329,7 @@ private fun naive(text: String,
     }
     return false
 }
-
+*/
 
 
 
