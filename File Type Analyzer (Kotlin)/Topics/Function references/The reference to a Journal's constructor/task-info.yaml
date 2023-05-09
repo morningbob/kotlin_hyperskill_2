@@ -1,0 +1,22 @@
+type: string
+files:
+- name: answer.txt
+  visible: true
+  placeholders:
+  - offset: 0
+    length: 9
+    placeholder_text: type your solution here
+    initial_state:
+      length: 9
+      offset: 0
+    initialized_from_dependency: false
+    selected: false
+    status: Solved
+  text: type your solution here
+  learner_created: false
+feedback_link: https://hyperskill.org/learn/step/15425#comment
+status: Solved
+feedback:
+  message: <html>Correct solution</html>
+  time: "Mon, 08 May 2023 16:56:28 UTC"
+record: -1

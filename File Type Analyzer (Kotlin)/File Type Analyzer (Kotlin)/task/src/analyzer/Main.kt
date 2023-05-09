@@ -98,19 +98,9 @@ private fun search(text: String, patterns: List<Pattern>, filename: String
     //val start = System.nanoTime()
     //var found = false
     for (pattern in patterns) {
-        //while (true) {
-            //val prefix = buildPrefixFunction(pattern.pattern)
-            //println("KMP pattern ${pattern.pattern}")
-            //val result = KMP(pattern.pattern, text, prefix)
-            //val end = System.nanoTime()
         val result = RabinKarp(pattern.pattern, text)
         if (result) {
             return "$filename: ${pattern.name}\n"
-            //println("result is $result")
-            //output += "$type\n"
-        } else {
-            //output += "$filename not ${pattern.name} with pattern ${pattern.pattern}\n"
-            //output += "$filename: Unknown file type\n"
         }
         //}
         //val time = formatTime(start, end)
@@ -128,22 +118,13 @@ private fun RabinKarp(pattern: String, text: String) : Boolean {
     val modular = 11
     var textToBeCut = text
 
-    //val letterMap = mutableMapOf<Char, Int>()
-    //var i = 1
-    //for (each in "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
-    //    letterMap.put(each, i)
-    //    i++
-    //}
-    //var different = false
-
     val patternHash = computeHash(pattern, factor, modular)
 
     // test if the text length > pattern length, if not, return false
     if (text.length < pattern.length) {
         return false
     }
-    //var currentPosition = (text.length - pattern.length)
-    //var endIndex = 1
+
     var previousSubstring = text.substring(
         text.length - pattern.length, text.length)
     println("first substring $previousSubstring")
@@ -151,9 +132,7 @@ private fun RabinKarp(pattern: String, text: String) : Boolean {
     //println("first hash $previousHash")
     textToBeCut = textToBeCut.dropLast(1)
     println("text before while loop $textToBeCut")
-    //while (currentPosition >= 0 && (text.length - pattern.length - endIndex >= 0)) {
-    //    val substring = text.substring(
-    //        text.length - pattern.length - endIndex, text.length - endIndex)
+
     while (true) {
         //println("$substring's hash $previousHash")
         if (patternHash == previousHash) {
@@ -161,8 +140,6 @@ private fun RabinKarp(pattern: String, text: String) : Boolean {
             for (i in 0..pattern.length - 1) {
                 if (pattern[i] != previousSubstring[i]) {
                     //println("different when comparing actual char")
-                    //return false
-                    //different = true
                     break
                 } else {
                     if (i == pattern.length - 1) {
@@ -170,8 +147,7 @@ private fun RabinKarp(pattern: String, text: String) : Boolean {
                     }
                 }
             }
-            //println("found a match")
-            //return true
+
         }
         // put the termination condition here because we have to run
         // the above one more time
@@ -188,8 +164,6 @@ private fun RabinKarp(pattern: String, text: String) : Boolean {
         previousSubstring = newSubstring
         textToBeCut = textToBeCut.dropLast(1)
         println("text before another while loop $textToBeCut")
-        //currentPosition -= pattern.length
-        //endIndex += pattern.length
     }
     //println("finished comparing all hashes, no match")
     return false
