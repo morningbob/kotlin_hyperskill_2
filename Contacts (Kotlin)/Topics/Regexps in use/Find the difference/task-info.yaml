@@ -1,0 +1,21 @@
+type: choice
+is_multiple_choice: true
+options:
+- text: Both functions return all matching substrings
+- text: findAll() returns all suitable substrings
+- text: find() returns a Boolean result
+- text: find() returns only the first match
+files:
+- name: src/Main.kt
+  visible: true
+  text: |
+    // You can experiment here, it won’t be checked
+
+    fun main(args: Array<String>) {
+      // put your code here
+    }
+  learner_created: false
+feedback_link: https://hyperskill.org/learn/step/14636#comment
+status: Solved
+record: -1
+local_check: false
