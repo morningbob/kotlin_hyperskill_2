@@ -1,7 +1,12 @@
 package contacts
 
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
+
 fun main() {
-    var contacts = listOf<Contact>()
+    var contacts = listOf<BaseContact>()
+
     var action : String? = null
     while (true) {
         action = showMenu()
@@ -9,22 +14,18 @@ fun main() {
             break
         }
         contacts = parseAction(action, contacts)
+
+        println()
     }
 }
 
-class Contact {
-    private var number = ""
-    private var name = ""
-    private var surname = ""
+class Person : BaseContact() {
+    override var isPerson = true
 
-    fun setName(firstname: String) {
-        if (firstname != "") {
-            name = firstname
-        }
-    }
-    fun getName() : String {
-        return name
-    }
+    private var surname = ""
+    private var birthday = ""
+    private var gender = ""
+
     fun setSurname(lastname: String) {
         if (lastname != "") {
             surname = lastname
@@ -34,6 +35,54 @@ class Contact {
         return surname
     }
 
+    fun getBirthday() : String {
+        return birthday
+    }
+    fun setBirthday(day: String) {
+        birthday = day
+    }
+
+    fun getGender() : String {
+        return gender
+    }
+    fun setGender(type: String) {
+        gender = type
+    }
+
+}
+
+class Organization : BaseContact() {
+    override var isPerson = false
+    private var address = ""
+
+    fun setAddress(add: String) {
+        if (add != "") {
+            address = add
+        }
+    }
+    fun getAddress() : String {
+        return address
+    }
+}
+
+open class BaseContact {
+    var name: String = ""
+    var number: String = ""
+    open var isPerson: Boolean = false
+    var created: String = ""
+    var edited: String = ""
+
+    @JvmName("setTheName")
+    fun setName(firstname: String) {
+        if (firstname != "") {
+            name = firstname
+        }
+    }
+    @JvmName("getTheName")
+    fun getName() : String {
+        return name
+    }
+    @JvmName("setTheNumber")
     fun setNumber(num: String) {
         if (checkPhone(num)) {
             number = num
@@ -41,18 +90,20 @@ class Contact {
             number = ""
         }
     }
+    @JvmName("getTheNumber")
     fun getNumber() : String {
         return number
     }
 }
 
 private fun showMenu() : String {
-    println("Enter Action (add, remove, edit, count, list, exit):")
+    println("Enter Action (add, remove, edit, count, info, exit):")
     return readln()
 
 }
 
-private fun parseAction(action: String, contacts: List<Contact>) : List<Contact> {
+private fun parseAction(action: String, contacts: List<BaseContact>,
+                        ) : List<BaseContact>{
     //var output = ""
 
     when (action.toLowerCase()) {
@@ -77,13 +128,10 @@ private fun parseAction(action: String, contacts: List<Contact>) : List<Contact>
             }
         }
         Action.COUNT.name.toLowerCase() -> {
-            //if (contacts.isEmpty()) {
             println("The Phone Book has ${contacts.size} records.")
-            //} else {
-                // search for the record
-            //}
+
         }
-        Action.LIST.name.toLowerCase() -> {
+        Action.INFO.name.toLowerCase() -> {
             if (contacts.isEmpty()) {
                 println("No records to list!")
             } else {
@@ -92,7 +140,7 @@ private fun parseAction(action: String, contacts: List<Contact>) : List<Contact>
         }
         else -> 0
     }
-    //output += Action.ADD.name.toLowerCase()
+
     return contacts
 }
 
@@ -101,41 +149,94 @@ enum class Action {
     REMOVE,
     EDIT,
     COUNT,
-    LIST,
+    INFO,
     EXIT
 }
 
-private fun addRecord(contacts: List<Contact>) : List<Contact> {
-    println("Enter the name of the person:")
-    val name = readln()
-    println("Enter the surname of the person:")
-    val surname = readln()
-    println("Enter the number:")
-    val phone = readln()
-    if (checkPhone(phone)) {
-        //println("phone is valid")
-    } else {
-        //println("wrong format")
+private fun addRecord(contacts: List<BaseContact>) : List<BaseContact> {
+    println("Enter the type (person, organization): ")
+    val type = readln()
+    var listContacts = listOf<BaseContact>()
+
+    when (type) {
+        "person" -> {
+            listContacts = addPerson(contacts)
+        }
+        "organization" -> {
+            listContacts = addOrganization(contacts)
+        }
     }
 
-    println("A record created!")
-    println("A Phone Book with a single record created!")
-    val contact = Contact()
-    contact.setName(name)
-    contact.setSurname(surname)
-    contact.setNumber(phone)
+    return listContacts
+}
+
+private fun addPerson(contacts: List<BaseContact>) : List<BaseContact> {
+    println("Enter the name of the person: ")
+    val name = readln()
+    println("Enter the surname of the person: ")
+    val surname = readln()
+    println("Enter the birth date: ")
+    val birthday = readln()
+    if (birthday == "") {
+        println("Bad birth date!")
+    }
+    println("Enter the gender (M, F): ")
+    val gender = readln()
+    if (gender != "M" && gender != "F") {
+        println("Bad gender!")
+    }
+    println("Enter the number: ")
+    val phone = readln()
+
+    println("A record added!")
+    //println("A Phone Book with a single record created!")
+    val person = Person()
+    person.setName(name)
+    person.setSurname(surname)
+    person.setNumber(phone)
+    person.setBirthday(birthday)
+    person.setGender(gender)
+
+    val time = Instant.now().truncatedTo(ChronoUnit.MINUTES).toString()//.substring(0, )
+    //val timeString = time.substring(0, time.length-4)
+    person.created = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
+    person.edited = person.created
     val list = contacts.toMutableList()
-    list.add(contact)
+    list.add(person)
+
+    return list
+}
+
+private fun addOrganization(contacts: List<BaseContact>) : List<BaseContact> {
+    println("Enter the organization name: ")
+    val name = readln()
+    println("Enter the address: ")
+    val address = readln()
+    println("Enter the number: ")
+    val number = readln()
+
+    val org = Organization()
+    org.setName(name)
+    org.setAddress(address)
+    org.setNumber(number)
+
+    val time = Instant.now().truncatedTo(ChronoUnit.MINUTES).toString()//.substring(0, )
+    val timeString = time.substring(0, time.length-4)
+    org.created =
+        LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
+    org.edited = org.created
+    println("A record added!")
+    //println("A Phone Book with a single record created!")
+    val list = contacts.toMutableList()
+    //val list =
+    list.add(org)
 
     return list
 }
 
 private fun checkPhone(phone: String) : Boolean {
     val parts = phone.split("\\s|-".toRegex())
-    //println("parts")
-    //for (each in parts) {
-    //    print("$each, ")
-    //}
+
     val firstPart = "\\+?\\(?[0-9a-zA-Z]+\\)?".toRegex()
     val firstParenthesisTest = "\\+?\\([0-9a-zA-Z]+\\)".toRegex()
     val parenthesisTest = "\\([0-9a-zA-Z]+\\)".toRegex()
@@ -155,15 +256,70 @@ private fun checkPhone(phone: String) : Boolean {
     }
 }
 
-private fun listRecord(contacts: List<Contact>) {
-    for (i in 1..contacts.size) {
-        val phoneDisplay = if (contacts[i-1].getNumber() != "") contacts[i-1].getNumber() else "[no number]"
-        println("$i. ${contacts[i-1].getName()} ${contacts[i-1].getSurname()}, ${phoneDisplay}")
+private fun <BaseContact> recordsToChoose(entities: List<BaseContact>) {
+    for (i in 1..entities.size) {
+        val contact = entities[i-1] as contacts.BaseContact
+        if (contact.isPerson) {
+            contact as Person
+            println("$i. ${contact.getName()} " +
+                    "${contact.getSurname()}")
+        } else {
+            contact as Organization
+            println("$i. ${contact.getName()}")
+        }
+        //println("$i. ${(entities[i - 1] as contacts.BaseContact).getName()} " +
+        //        "${(entities[i-1] as contacts.BaseContact).get}")
     }
 }
 
-private fun editRecord(contacts: List<Contact>) : List<Contact> {
-    listRecord(contacts)
+private fun <BaseContact> listRecord(entities: List<BaseContact>) {
+
+    recordsToChoose(entities)
+
+    println("Select a record: ")
+    val index = readln().toInt() - 1
+
+    listDetails(entities as List<contacts.BaseContact>, index)
+
+}
+
+private fun listDetails(contacts: List<BaseContact>, index: Int) {
+
+    val contact = contacts[index]
+    if (contact.isPerson) {
+        val person = contact as Person
+        println("Name: ${contact.getName()}")
+        println("Surname: ${contact.getSurname()}")
+        val birth = contact.getBirthday()
+        print("Birth date: " )
+        if (birth != "") {
+            println(birth)
+        } else {
+            println("[no data]")
+        }
+        val gender = contact.getGender()
+        print("Gender: ")
+        if (gender != "") {
+            println(gender)
+        } else {
+            println("[no data]")
+        }
+        println("Number: ${contact.getNumber()}")
+        println("Time created: ${contact.created}")
+        println("Time last edit: ${contact.edited}")
+    } else {
+        val org = contact as Organization
+        println("Organization name: ${org.getName()}")
+        println("Address: ${org.getAddress()}")
+        println("Number: ${org.getNumber()}")
+        println("Time created: ${org.created}")
+        println("Time last edit: ${org.edited}")
+    }
+
+}
+
+private fun editRecord(contacts: List<BaseContact>) : List<BaseContact> {
+    recordsToChoose(contacts)
     println("Select a record: ")
     val selectedRecord = readln().toInt() - 1
 
@@ -178,30 +334,59 @@ private fun editRecord(contacts: List<Contact>) : List<Contact> {
     return updatedList
 }
 
-private fun updateField(contacts: List<Contact>, index: Int, fieldName: String, fieldData: String) : List<Contact> {
+private fun updateField(contacts: List<BaseContact>,
+                        index: Int, fieldName: String, fieldData: String) :
+        List<BaseContact> {
 
-    //val updatedList = emptyList<Contact>()
+    val contact = contacts[index]
+    if (contact.isPerson) {
+        contact as Person
+    } else {
+        contact as Organization
+    }
+
     when (fieldName) {
         "name" -> {
-            contacts[index].setName(fieldData)
+            contact.setName(fieldData)
         }
         "surname" -> {
-            contacts[index].setSurname(fieldData)
+            (contact as Person).setSurname(fieldData)
         }
         "number" -> {
-            contacts[index].setNumber(fieldData)
+            contact.setNumber(fieldData)
+        }
+        "birthday" -> {
+            (contact as Person).setBirthday(fieldData)
+        }
+        "gender" -> {
+            (contact as Person).setGender(fieldData)
+        }
+        "address" -> {
+            (contact as Organization).setAddress(fieldData)
         }
     }
-    val updatedList = contacts
+    val time = Instant.now().truncatedTo(ChronoUnit.MINUTES).toString()//.substring(0, )
+    val timeString = time.substring(0, time.length-4)
+    contact.edited = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).toString()
+
+    val updatedList = mutableListOf<BaseContact>()
+    for (each in contacts) {
+        if (each.getName() != contact.getName()) {
+            updatedList.add(each)
+        } else {
+            updatedList.add(contact)
+        }
+    }
+
     return updatedList
 
 }
 
-private fun removeRecord(contacts: List<Contact>): List<Contact> {
+private fun removeRecord(contacts: List<BaseContact>): List<BaseContact> {
     listRecord(contacts)
     println("Select a record: ")
     val selectedRecord = readln().toInt() - 1
-    val list = mutableListOf<Contact>()
+    val list = mutableListOf<BaseContact>()
     //list.toMutableList().removeAt(selectedRecord)
     for (i in 0..contacts.size-1) {
         if (i != selectedRecord) {
