@@ -203,5 +203,28 @@ files:
     \ \"Can't check the answer\");\n        }\n    }\n}\n"
   learner_created: false
 feedback_link: https://hyperskill.org/learn/step/20391#comment
-status: Unchecked
+status: Failed
+feedback:
+  message: "Wrong answer in test #9\n\nSearch is not working\n\nPlease find below\
+    \ the output of your program during this failed test.\nNote that the &#39;&gt;&#39;\
+    \ character indicates the beginning of the input line.\n\n---\n\n[menu] Enter\
+    \ action (add, list, search, count, exit):\n&gt; add\nEnter the type (person,\
+    \ organization): \n&gt; organization\nEnter the organization name: \n&gt; Pizza\
+    \ Shop\nEnter the address: \n&gt; Wall St. 1\nEnter the number: \n&gt; +0 (123)\
+    \ 456-789-9999\nA record added!\n\n[menu] Enter action (add, list, search, count,\
+    \ exit):\n&gt; add\nEnter the type (person, organization): \n&gt; person\nEnter\
+    \ the name of the person: \n&gt; John\nEnter the surname of the person: \n&gt;\
+    \ Smith\nEnter the birth date: \n&gt; \nBad birth date!\nEnter the gender (M,\
+    \ F): \n&gt; \nBad gender!\nEnter the number: \n&gt; 123 456 789\nA record added!\n\
+    \n[menu] Enter action (add, list, search, count, exit):\n&gt; add\nEnter the type\
+    \ (person, organization): \n&gt; organization\nEnter the organization name: \n\
+    &gt; PizzaNuts\nEnter the address: \n&gt; Wall St. 6\nEnter the number: \n&gt;\
+    \ +0 (123) 456-789-9999\nA record added!\n\n[menu] Enter action (add, list, search,\
+    \ count, exit):\n&gt; search\nEnter search query: \n&gt; s\nFound 2 results.\n\
+    1. Pizza Shop\n2. PizzaNuts\n[search] Enter action ([number], back, again): \n\
+    &gt; 1\nOrganization name: Pizza Shop\nAddress: Wall St. 1\nNumber: +0 (123) 456-789-9999\n\
+    Time created: 2023-05-13T10:22\nTime last edit: 2023-05-13T10:22\n\n[record] Enter\
+    \ action (edit, delete, menu): \n&gt; menu\n\n[menu] Enter action (add, list,\
+    \ search, count, exit):\n&gt; exit"
+  time: "Sat, 13 May 2023 14:22:32 UTC"
 record: -1

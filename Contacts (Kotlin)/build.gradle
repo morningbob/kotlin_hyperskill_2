@@ -6,6 +6,7 @@ buildscript {
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$hs.kotlin.version"
+        implementation("com.squareup.moshi:moshi-kotlin:1.11.0")
     }
 }
 
@@ -41,6 +42,7 @@ subprojects {
 
     dependencies {
         testImplementation 'com.github.hyperskill:hs-test:release-SNAPSHOT'
+        implementation("com.squareup.moshi:moshi-kotlin:1.11.0")
     }
 
     configurations.all {
@@ -66,6 +68,7 @@ subprojects {
 project(':util') {
     dependencies {
         implementation 'com.github.hyperskill:hs-test:release-SNAPSHOT'
+        implementation("com.squareup.moshi:moshi-kotlin:1.11.0")
     }
 }
 
@@ -78,4 +81,8 @@ configure(subprojects.findAll {it.name != 'util'}) {
 
 wrapper {
     gradleVersion = hs.gradle.version
+}
+
+dependencies {
+    implementation 'com.squareup.moshi:moshi:1.14.0'
 }
