@@ -1,19 +1,42 @@
 package contacts
 
+import com.squareup.moshi.JsonAdapter
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
+import com.squareup.moshi.adapters.PolymorphicJsonAdapterFactory
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import java.io.File
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import kotlin.math.pow
-import kotlin.system.exitProcess
-
-
 
 
 fun main() {
 
     val moshi = Moshi.Builder()
+        //.add(KotlinJsonAdapterFactory())
+        .add(
+            PolymorphicJsonAdapterFactory.of(
+            BaseContact::class.java, "type")
+            .withSubtype(
+                Person::class.java, Base.PERSON.name)
+
+            .withSubtype(
+                Organization::class.java, Base.ORGANIZATION.name
+            )
+
+        )
         .add(KotlinJsonAdapterFactory())
         .build()
+
+    val type = Types.newParameterizedType(List::class.java, BaseContact::class.java)
+    val moshiAdapter = moshi.adapter<List<BaseContact>>(type)
+
+    var d = File("phoneBook.db")
+    d.delete()
+    var db = File("phoneBook.db")
+    d.createNewFile()
 
 
     var contacts = listOf<BaseContact>()
@@ -27,7 +50,7 @@ fun main() {
             shouldContinue = false
             break
         }
-        contacts = parseAction(action, contacts)
+        contacts = parseAction(action, contacts, db, moshiAdapter)
         //val pair = parseAction(action, contacts)
         //contacts = pair.first
         //shouldContinue = pair.second
@@ -37,6 +60,7 @@ fun main() {
 
 class Person : BaseContact() {
     override var isPerson = true
+    override val type = Base.PERSON
 
     private var surname = ""
     private var birthday = ""
@@ -97,6 +121,7 @@ class Person : BaseContact() {
 class Organization : BaseContact() {
     override var isPerson = false
     private var address = ""
+    override val type = Base.ORGANIZATION
 
     fun setAddress(add: String) {
         if (add != "") {
@@ -137,6 +162,7 @@ open class BaseContact {
     open var isPerson: Boolean = false
     var created: String = ""
     var edited: String = ""
+    open val type = Base.BASE
 
     @JvmName("setTheName")
     fun setName(firstname: String) {
@@ -180,16 +206,19 @@ private fun showMenu() : String {
     return readln()
 }
 
-private fun parseAction(action: String, contacts: List<BaseContact>,
+private fun parseAction(action: String, contacts: List<BaseContact>, db: File,
+                        moshiAdapter: JsonAdapter<List<BaseContact>>
                         ) : List<BaseContact> {
 
     when (action.toLowerCase()) {
         Action.ADD.name.toLowerCase() -> {
             //println("matched add")
-            return addRecord(contacts)
+            val newContacts =  addRecord(contacts, db, moshiAdapter)
+            //writeToDatabase(newContacts, db, moshiAdapter)
+            return newContacts
         }
         Action.SEARCH.name.toLowerCase() -> {
-            searchRecord(contacts)
+            searchRecord(contacts, db, moshiAdapter)
         }
 
         Action.COUNT.name.toLowerCase() -> {
@@ -200,7 +229,7 @@ private fun parseAction(action: String, contacts: List<BaseContact>,
             if (contacts.isEmpty()) {
                 println("No records to list!")
             } else {
-                listRecord(contacts)
+                listRecord(contacts, listOf<Int>(),  db, moshiAdapter)
             }
         }
         Action.EXIT.name.toLowerCase() -> {
@@ -214,6 +243,12 @@ private fun parseAction(action: String, contacts: List<BaseContact>,
     return contacts
 }
 
+enum class Base {
+    BASE,
+    PERSON,
+    ORGANIZATION
+}
+
 enum class Action {
     ADD,
     REMOVE,
@@ -224,20 +259,50 @@ enum class Action {
     EXIT
 }
 
-private fun addRecord(contacts: List<BaseContact>) : List<BaseContact> {
+private fun writeToDatabase(contacts: List<BaseContact>, db: File, moshiAdapter: JsonAdapter<List<BaseContact>>) {
+    // serialize
+    val json = moshiAdapter.toJson(contacts)
+    //println("json: $json")
+    db.writeText(json)
+}
+
+private fun retrieveFromDatabase(contacts: List<BaseContact>,
+                                 db: File, moshiAdapter: JsonAdapter<List<BaseContact>>) : List<BaseContact>? {
+    val data = db.readText()
+    if (data != "") {
+        return moshiAdapter.fromJson(data)
+    }
+    return null
+}
+
+private fun addRecord(contacts: List<BaseContact>,
+                      db: File, moshiAdapter: JsonAdapter<List<BaseContact>>) : List<BaseContact> {
     println("Enter the type (person, organization): ")
     val type = readln()
+
+    var contactsFromDatabase = listOf<BaseContact>()
+    val threadRead = Thread() {
+        contactsFromDatabase = retrieveFromDatabase(contacts, db, moshiAdapter) ?: listOf()
+
+    }
+    threadRead.start()
+    threadRead.join()
     var listContacts = listOf<BaseContact>()
 
     when (type) {
         "person" -> {
-            listContacts = addPerson(contacts)
+            listContacts = addPerson(contactsFromDatabase ?: emptyList())
         }
         "organization" -> {
-            listContacts = addOrganization(contacts)
+            listContacts = addOrganization(contactsFromDatabase ?: emptyList())
         }
     }
 
+    val thread = Thread() {
+        writeToDatabase(listContacts, db, moshiAdapter)
+    }
+    thread.start()
+    thread.join()
     return listContacts
 }
 
@@ -325,38 +390,50 @@ private fun checkPhone(phone: String) : Boolean {
     }
 }
 
-private fun searchRecord(contacts: List<BaseContact>) {
+private fun searchRecord(contacts: List<BaseContact>, db: File,
+                         moshiAdapter: JsonAdapter<List<BaseContact>>) {
+
+    var contactsFromDatabase = listOf<BaseContact>()
+    val thread = Thread() {
+        contactsFromDatabase = retrieveFromDatabase(contacts, db, moshiAdapter) ?: listOf()
+    }
+    thread.start()
+    thread.join()
+
     println("Enter search query: ")
     val query = readln()
-    val result = RabinKarp(query, contacts)
+    val result = RabinKarp(query, contactsFromDatabase ?: emptyList())
     println("Found ${result.size} results.")
-    val indexMap = recordsToChoose(contacts, result)
+    val indexMap = recordsToChoose(contactsFromDatabase ?: emptyList(), result)
 
     println("[search] Enter action ([number], back, again): ")
     val searchAction = readln()
-    parseSearchAction(contacts, searchAction)
+    parseSearchAction(contactsFromDatabase, searchAction, indexMap, db, moshiAdapter)
 }
 
-private fun parseSearchAction(contacts: List<BaseContact>, action: String, indexMap: Map<Int, Int> = mapOf()) {
+private fun parseSearchAction(contacts: List<BaseContact>, action: String,
+                              indexMap: Map<Int, Int> = mapOf(),
+                              db: File, moshiAdapter: JsonAdapter<List<BaseContact>>) {
     // check if it is a number first
     var choice = 0
     try {
         choice = action.toInt()
     } catch (e: NumberFormatException) {
-        println("tested, not a number")
+        //println("tested, not a number")
         when (action) {
             "back" -> {
-                parseAction(showMenu(), contacts)
+                parseAction(showMenu(), contacts, db, moshiAdapter)
                 return
             }
             "again" -> {
-                searchRecord(contacts)
+                searchRecord(contacts, db, moshiAdapter)
                 return
             }
         }
     }
     if (choice != 0) {
-        listDetails(contacts, choice - 1, indexMap)
+        //println(indexMap.size)
+        listDetails(contacts, choice, indexMap, db, moshiAdapter)
     }
 
 }
@@ -483,37 +560,47 @@ private fun <BaseContact> recordsToChoose(entities: List<BaseContact>, recordsTo
     return indexMapRecords
 }
 
-private fun listRecord(contacts: List<BaseContact>, recordsToList: List<Int> = emptyList()) {
+private fun listRecord(contacts: List<BaseContact>, recordsToList: List<Int> = emptyList(),
+                       db: File, moshiAdapter: JsonAdapter<List<BaseContact>>) {
+    var contactsFromDatabase = listOf<BaseContact>()
+    val thread = Thread() {
+        contactsFromDatabase = retrieveFromDatabase(contacts, db, moshiAdapter) ?: listOf()
 
-    recordsToChoose(contacts, recordsToList)
+    }
+    thread.start()
+    thread.join()
+
+    recordsToChoose(contactsFromDatabase ?: emptyList(), recordsToList)
 
     println("[list] Enter action ([number], back): ")
     //val index = readln().toInt() - 1
     val action = readln()
-    parseListAction(contacts, action)
+    parseListAction(contactsFromDatabase ?: emptyList(), action, db, moshiAdapter)
     //listDetails(entities as List<contacts.BaseContact>, index)
 
 }
 
-private fun parseListAction(contacts: List<BaseContact>, action: String) {
+private fun parseListAction(contacts: List<BaseContact>, action: String,
+                            db: File, moshiAdapter: JsonAdapter<List<BaseContact>>) {
     var choice = 0
     try {
         choice = action.toInt()
     } catch (e: NumberFormatException) {
-        println("tested, not a number")
+        //println("tested, not a number")
         when (action) {
             "back" -> {
-                parseAction(showMenu(), contacts)
+                parseAction(showMenu(), contacts, db, moshiAdapter)
                 return
             }
         }
     }
     if (choice != 0) {
-        listDetails(contacts, choice - 1)
+        listDetails(contacts, choice - 1, mapOf(), db, moshiAdapter)
     }
 }
 
-private fun listDetails(contacts: List<BaseContact>, index: Int, indexMap: Map<Int, Int> = mapOf()) {
+private fun listDetails(contacts: List<BaseContact>, index: Int, indexMap: Map<Int, Int> = mapOf(),
+                        db: File, moshiAdapter: JsonAdapter<List<BaseContact>>) {
     var parsedIndex = 0
     // from search result, need to parse record index
     if (indexMap.isNotEmpty()) {
@@ -556,34 +643,45 @@ private fun listDetails(contacts: List<BaseContact>, index: Int, indexMap: Map<I
     println("")
     println("[record] Enter action (edit, delete, menu): ")
     val action = readln()
-    parseRecordAction(contacts, action, parsedIndex)
+    parseRecordAction(contacts, action, parsedIndex, db, moshiAdapter)
 
 }
 
-private fun parseRecordAction(contacts: List<BaseContact>, action: String, index: Int) {
+private fun parseRecordAction(contacts: List<BaseContact>, action: String, index: Int,
+                              db: File, moshiAdapter: JsonAdapter<List<BaseContact>>) {
     when (action) {
         "menu" -> {
-            parseAction(showMenu(), contacts)
+            parseAction(showMenu(), contacts, db, moshiAdapter)
             return
         }
         "edit" -> {
-            editRecord(contacts, index)
+            editRecord(contacts, index, db, moshiAdapter)
             return
         }
         "delete" -> {
-            removeRecord(contacts, index)
+            removeRecord(contacts, index, db, moshiAdapter)
             return
         }
     }
 }
 
-private fun editRecord(contacts: List<BaseContact>, index: Int) : List<BaseContact> {
+private fun editRecord(contacts: List<BaseContact>, index: Int, db: File,
+                       moshiAdapter: JsonAdapter<List<BaseContact>>) : List<BaseContact> {
+
+    var contactsFromDatabase = listOf<BaseContact>()
+    val thread = Thread() {
+        contactsFromDatabase = retrieveFromDatabase(contacts, db, moshiAdapter) ?: listOf()
+
+    }
+    thread.start()
+    thread.join()
+    val record = contactsFromDatabase!!.get(index)
     //recordsToChoose(contacts)
     //println("Select a record: ")
     //val selectedRecord = readln().toInt() - 1
     var updatedList = listOf<BaseContact>()
     // test if it is a person or org , show different message
-    val record = contacts[index]
+    //val record = contacts[index]
     // only org has address
     if ("address" in record.propertiesAvailable()) {
         println("Select a field (name, address, number): ")
@@ -601,11 +699,13 @@ private fun editRecord(contacts: List<BaseContact>, index: Int) : List<BaseConta
     println("Enter $selectedFieldName: ")
     val selectedFieldData = readln()
     //updatedList = updateField(contacts, index, selectedFieldName, selectedFieldData)
-    updatedList = updateField(contacts, index, selectedFieldName, selectedFieldData)
+    updatedList = updateField(contactsFromDatabase, index, selectedFieldName, selectedFieldData)
+
+    writeToDatabase(updatedList, db, moshiAdapter)
 
     println("Saved")
     // we need to display the updated record after saved
-    listDetails(contacts, index)
+    listDetails(contactsFromDatabase, index, mapOf(), db, moshiAdapter)
     return updatedList
 }
 
@@ -631,18 +731,29 @@ private fun updateField(contacts: List<BaseContact>, index: Int,
 
 }
 
-private fun removeRecord(contacts: List<BaseContact>, index: Int): List<BaseContact> {
+private fun removeRecord(contacts: List<BaseContact>, index: Int,
+                         db: File, moshiAdapter: JsonAdapter<List<BaseContact>>): List<BaseContact> {
     //listRecord(contacts)
     //println("Select a record: ")
     //val selectedRecord = readln().toInt() - 1
-    val list = mutableListOf<BaseContact>()
-    //list.toMutableList().removeAt(selectedRecord)
-    for (i in 0..contacts.size-1) {
-        if (i != index) {
-            list.add(contacts[i])
-        }
+    var contactsFromDatabase = listOf<BaseContact>()
+    val thread = Thread() {
+        contactsFromDatabase = retrieveFromDatabase(contacts, db, moshiAdapter) ?: listOf()
+
     }
-    println("The record removed!")
+    thread.start()
+    thread.join()
+    val list = mutableListOf<BaseContact>()
+    contactsFromDatabase?.let {
+
+        //list.toMutableList().removeAt(selectedRecord)
+        for (i in 0..it.size - 1) {
+            if (i != index) {
+                list.add(contacts[i])
+            }
+        }
+        println("The record removed!")
+    }
     return list
 }
 /*
